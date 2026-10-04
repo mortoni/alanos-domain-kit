@@ -1,0 +1,12 @@
+{
+  "$comment": "The compiler options every Alan OS domain repository shares. Extend this and add include paths.",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "types": ["node"]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "name": "@alanos/domain-kit",
+  "version": "0.1.0",
+  "description": "Shared wire and plumbing for Alan OS domain repositories: MCP server bootstrap, manifest emitter engine, EV-14 commit engine, improvement-standard reads, status shape, and the sandbox conformance suite.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mortoni/alanos-domain-kit.git"
+  },
+  "files": [
+    "dist",
+    "tsconfig.base.json",
+    "LICENSE",
+    "README.md",
+    "CONSTITUTION.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/sandbox-conformance.d.ts",
+      "default": "./dist/testing/sandbox-conformance.js"
+    },
+    "./tsconfig.base.json": "./tsconfig.base.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:markdown": "markdownlint-cli2 --no-globs '**/*.md' '#node_modules' '#dist'",
+    "check:hygiene": "node scripts/check-hygiene.mjs",
+    "prepare": "tsc -p tsconfig.build.json",
+    "check": "pnpm format:check && pnpm lint:markdown && pnpm check:hygiene && pnpm typecheck && pnpm build && pnpm test"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": ">=1.30.0 <2",
+    "prettier": "^3",
+    "vitest": "^3",
+    "zod": "^3"
+  },
+  "peerDependenciesMeta": {
+    "prettier": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@types/node": "^24.0.14",
+    "markdownlint-cli2": "^0.18.1",
+    "prettier": "^3.6.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4",
+    "zod": "^3.25.76"
+  }
+}

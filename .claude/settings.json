@@ -1,0 +1,19 @@
+{
+  "$comment": "This repository holds code only: no evidence, no knowledge, nothing private. The sandbox is still on and fails closed, matching the federation posture (VIS-S5), and .env is refused on principle even though none exists.",
+  "permissions": {
+    "deny": ["Read(.env)", "Read(.env.*)"]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [],
+    "filesystem": { "denyRead": [], "allowRead": [] },
+    "credentials": {
+      "files": [
+        { "path": "./.env", "mode": "deny" },
+        { "path": "./.env.*", "mode": "deny" }
+      ]
+    }
+  }
+}
