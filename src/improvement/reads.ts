@@ -96,16 +96,33 @@ export function gitPendingItems(
   return items;
 }
 
+export interface ListUpdatesResult {
+  readonly domain: string;
+  readonly generatedAt: string;
+  readonly items: readonly UpdatesFile["items"][number][];
+  readonly detail: string | null;
+}
+
+export interface ListInsightsResult {
+  readonly domain: string;
+  readonly generatedAt: string;
+  readonly ledgerUpdatedAt?: string;
+  readonly threshold: number;
+  readonly total: number;
+  readonly items: readonly Insight[];
+  readonly detail: string | null;
+}
+
 export interface ImprovementReads {
   readonly listUpdates: (
     repositoryRoot: string,
     now: string,
-  ) => Promise<Record<string, unknown>>;
+  ) => Promise<ListUpdatesResult>;
   readonly listInsights: (
     repositoryRoot: string,
     now: string,
     options?: ListInsightsOptions,
-  ) => Promise<Record<string, unknown>>;
+  ) => Promise<ListInsightsResult>;
   readonly getInsightReport: (
     repositoryRoot: string,
     id: string,
@@ -133,7 +150,10 @@ export function createImprovementReads(
 ): ImprovementReads {
   const { domainId, threshold } = options;
 
-  async function listUpdates(repositoryRoot: string, now: string) {
+  async function listUpdates(
+    repositoryRoot: string,
+    now: string,
+  ): Promise<ListUpdatesResult> {
     const updates = await readUpdates(repositoryRoot);
     if (updates === null) {
       return {
@@ -156,7 +176,7 @@ export function createImprovementReads(
     repositoryRoot: string,
     now: string,
     options: ListInsightsOptions = {},
-  ) {
+  ): Promise<ListInsightsResult> {
     const ledger = await readInsightsLedger(repositoryRoot);
     if (ledger === null) {
       return {

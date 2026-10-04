@@ -1,6 +1,6 @@
 {
   "name": "@alanos/domain-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Shared wire and plumbing for Alan OS domain repositories: MCP server bootstrap, manifest emitter engine, EV-14 commit engine, improvement-standard reads, status shape, and the sandbox conformance suite.",
   "license": "MIT",
   "type": "module",

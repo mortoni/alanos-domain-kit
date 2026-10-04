@@ -89,6 +89,16 @@ export const capturedOverdue = (state: CapturedState, now: Date): boolean =>
 
 export type DailyOutcome = CommitOutcome | { readonly committed: "later" };
 
+/** What `commit_pending` answers the owner's application. */
+export interface CommitPendingResult {
+  readonly accepted: true;
+  readonly requestId: string;
+  readonly committed: boolean;
+  readonly commit?: string;
+  readonly reason?: string;
+  readonly files: readonly string[];
+}
+
 export type ChangeStatus =
   "modified" | "added" | "deleted" | "renamed" | "untracked";
 
@@ -240,7 +250,7 @@ export interface DomainGit {
   readonly commitPending: (
     repositoryRoot: string,
     input: unknown,
-  ) => Promise<Record<string, unknown>>;
+  ) => Promise<CommitPendingResult>;
 }
 
 const envName = (domainId: string, suffix: string): string =>
@@ -488,7 +498,10 @@ export function createDomainGit(options: DomainGitOptions): DomainGit {
    * The commit is its own record; a log line written for it would leave the
    * log uncommitted again at once.
    */
-  async function commitPending(repositoryRoot: string, input: unknown) {
+  async function commitPending(
+    repositoryRoot: string,
+    input: unknown,
+  ): Promise<CommitPendingResult> {
     const requestId =
       typeof (input as { requestId?: unknown } | null)?.requestId === "string"
         ? (input as { requestId: string }).requestId
