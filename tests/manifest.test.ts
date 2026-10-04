@@ -102,7 +102,7 @@ describe("emitManifest", () => {
       emitManifest({
         repositoryRoot: root,
         body: BODY,
-        tools: [{ name: "mute", kind: "read", description: "  " }],
+        tools: [...TOOLS, { name: "mute", kind: "read", description: "  " }],
         improvement: IMPROVEMENT,
         checkOnly: true,
       }),
@@ -120,5 +120,46 @@ describe("emitManifest", () => {
         checkOnly: true,
       }),
     ).rejects.toThrow(ManifestProblem);
+  });
+});
+
+describe("the registry floor and planned capabilities", () => {
+  it("refuses a registry without get_status (the status standard requires it)", async () => {
+    const root = await scratch();
+    await expect(
+      emitManifest({
+        repositoryRoot: root,
+        body: BODY,
+        tools: [{ name: "lonely", kind: "read", description: "A read." }],
+        improvement: IMPROVEMENT,
+        checkOnly: true,
+      }),
+    ).rejects.toThrow(ManifestProblem);
+  });
+
+  it("appends planned capabilities verbatim after the derived ones", async () => {
+    const root = await scratch();
+    const planned = {
+      name: "someday",
+      status: "planned",
+      interfaces: ["mcpLocal"],
+      description: "Hand-written: there is no implementation to derive from.",
+    };
+    await emitManifest({
+      repositoryRoot: root,
+      body: BODY,
+      tools: TOOLS,
+      planned: { action: [planned] },
+      improvement: IMPROVEMENT,
+      checkOnly: false,
+    });
+    const manifest = JSON.parse(
+      await readFile(join(root, "domain-manifest.json"), "utf8"),
+    ) as { capabilities: { action: { name: string; status: string }[] } };
+    expect(manifest.capabilities.action.map((a) => a.name)).toEqual([
+      "record_thing",
+      "someday",
+    ]);
+    expect(manifest.capabilities.action[1]?.status).toBe("planned");
   });
 });

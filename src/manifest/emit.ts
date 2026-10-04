@@ -28,6 +28,16 @@ export interface EmitManifestOptions {
    */
   readonly body: Record<string, unknown>;
   readonly tools: readonly ManifestToolLike[];
+  /**
+   * Capabilities the domain declares beyond the running registry, appended
+   * after the derived ones: planned capabilities have no implementation to
+   * derive a description from, so the domain writes these entries by hand
+   * and they are published verbatim.
+   */
+  readonly planned?: {
+    readonly read?: readonly Record<string, unknown>[];
+    readonly action?: readonly Record<string, unknown>[];
+  };
   /** Default: one local stdio surface, current, no auth. */
   readonly interfaces?: Record<string, unknown>;
   readonly improvement: {
@@ -71,12 +81,20 @@ export async function emitManifest(
     };
   };
 
-  const reads = options.tools
-    .filter((tool) => tool.kind === "read")
-    .map(declare);
-  const actions = options.tools
-    .filter((tool) => tool.kind === "action")
-    .map(declare);
+  if (!options.tools.some((tool) => tool.name === "get_status")) {
+    throw new ManifestProblem(
+      "MCP tool get_status is missing; the status standard requires it.",
+    );
+  }
+
+  const reads = [
+    ...options.tools.filter((tool) => tool.kind === "read").map(declare),
+    ...(options.planned?.read ?? []),
+  ];
+  const actions = [
+    ...options.tools.filter((tool) => tool.kind === "action").map(declare),
+    ...(options.planned?.action ?? []),
+  ];
 
   if (!existsSync(join(options.repositoryRoot, options.improvement.brief))) {
     throw new ManifestProblem(
