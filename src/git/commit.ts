@@ -21,6 +21,24 @@ export type CommitOutcome =
   | { readonly committed: true; readonly commit: string }
   | { readonly committed: false; readonly reason: string };
 
+/**
+ * Content a domain captures without an act of the owner is committed at
+ * least daily (EV-14's second rhythm): one commit per day, not one per
+ * capture.
+ */
+export interface CapturedOptions {
+  /** Paths captured without an act of the owner, e.g. a sessions folder and the action log. */
+  readonly paths: readonly string[];
+  /**
+   * Paths whose last commit marks the day captured content was last
+   * committed. Defaults to `paths`; narrow it when one of the captured paths
+   * (such as the action log) is also committed by the owner's own acts.
+   */
+  readonly anchorPaths?: readonly string[];
+  /** The daily commit's message, from what is waiting and the local day. */
+  readonly message: (count: number, day: string) => string;
+}
+
 export interface DomainGitOptions {
   /**
    * The domain's id, e.g. "example". Derives the environment variables the
@@ -35,7 +53,41 @@ export interface DomainGitOptions {
   readonly ownedPaths: readonly string[];
   /** Who signs when no environment variable overrides: the owner's name. */
   readonly defaultOwner: string;
+  /** Set when this domain captures content without an act of the owner. */
+  readonly captured?: CapturedOptions;
 }
+
+/** The local calendar day of an instant, YYYY-MM-DD. */
+export const localDay = (at: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
+};
+
+/** The local day before this one. */
+export const dayBefore = (day: string): string => {
+  const [y, m, d] = day.split("-").map(Number);
+  return localDay(new Date(y ?? 0, (m ?? 1) - 1, (d ?? 1) - 1));
+};
+
+export interface CapturedState {
+  /** Captured files not yet committed. */
+  readonly waiting: number;
+  /** The local day captured content was last committed, or null if never. */
+  readonly lastCommittedDay: string | null;
+  /** True when content is waiting and nothing captured was committed today. */
+  readonly due: boolean;
+}
+
+/**
+ * Captured content has waited longer than the daily rhythm allows: something
+ * is waiting and nothing captured was committed today or yesterday.
+ */
+export const capturedOverdue = (state: CapturedState, now: Date): boolean =>
+  state.waiting > 0 &&
+  (state.lastCommittedDay === null ||
+    state.lastCommittedDay < dayBefore(localDay(now)));
+
+export type DailyOutcome = CommitOutcome | { readonly committed: "later" };
 
 export type ChangeStatus =
   "modified" | "added" | "deleted" | "renamed" | "untracked";
@@ -137,8 +189,32 @@ export interface DomainGit {
     message: string,
     owner?: string,
   ) => Promise<CommitOutcome>;
-  /** Files this domain owns that differ from HEAD. Null when not a repository. */
+  /**
+   * Files this domain owns that differ from HEAD, captured content aside
+   * (that has its own daily rhythm). Null when not a repository.
+   */
   readonly uncommitted: (repositoryRoot: string) => Promise<number | null>;
+  /** Captured content's state against the daily rhythm. Null when not a repository or nothing is declared captured. */
+  readonly capturedState: (
+    repositoryRoot: string,
+    now: Date,
+  ) => Promise<CapturedState | null>;
+  /** Commit everything captured and waiting, now. */
+  readonly commitCaptured: (
+    repositoryRoot: string,
+    now: Date,
+    owner?: string,
+  ) => Promise<CommitOutcome>;
+  /**
+   * After a capture: commit if nothing captured has been committed today, so
+   * a day of captures makes one commit, not one each. `later` means today's
+   * commit is already made and this capture waits for the next day's.
+   */
+  readonly commitCapturedIfDue: (
+    repositoryRoot: string,
+    now: Date,
+    owner?: string,
+  ) => Promise<DailyOutcome>;
   /** Whether the repository has anywhere to push to. Null when not a repository. */
   readonly hasRemote: (repositoryRoot: string) => Promise<boolean | null>;
   /**
@@ -172,7 +248,7 @@ const envName = (domainId: string, suffix: string): string =>
 
 /** The EV-14 commit engine, bound to one domain's id and owned paths. */
 export function createDomainGit(options: DomainGitOptions): DomainGit {
-  const { domainId, ownedPaths, defaultOwner } = options;
+  const { domainId, ownedPaths, defaultOwner, captured } = options;
   const ownerEnv = envName(domainId, "OWNER");
   const emailEnv = envName(domainId, "OWNER_EMAIL");
 
@@ -257,13 +333,110 @@ export function createDomainGit(options: DomainGitOptions): DomainGit {
   ): Promise<CommitOutcome> =>
     commitPaths(repositoryRoot, [...ownedPaths], message, owner);
 
+  const isCaptured = (path: string): boolean =>
+    (captured?.paths ?? []).some(
+      (root) => path === root || path.startsWith(`${root}/`),
+    );
+
   async function uncommitted(repositoryRoot: string): Promise<number | null> {
     if (!(await isRepository(repositoryRoot))) return null;
     try {
-      return (await changedUnder(repositoryRoot, [...ownedPaths])).length;
+      return (await changedUnder(repositoryRoot, [...ownedPaths])).filter(
+        (path) => !isCaptured(path),
+      ).length;
     } catch {
       return null;
     }
+  }
+
+  /** The local day of the last commit that touched the anchor paths, or null. */
+  async function lastCapturedCommitDay(root: string): Promise<string | null> {
+    try {
+      const anchors = captured?.anchorPaths ?? captured?.paths ?? [];
+      const { stdout } = await git(root, [
+        "log",
+        "-1",
+        "--format=%ct",
+        "--",
+        ...anchors,
+      ]);
+      const seconds = Number(stdout.trim());
+      if (stdout.trim() === "" || !Number.isFinite(seconds)) return null;
+      return localDay(new Date(seconds * 1000));
+    } catch {
+      return null;
+    }
+  }
+
+  async function capturedState(
+    repositoryRoot: string,
+    now: Date,
+  ): Promise<CapturedState | null> {
+    if (captured === undefined) return null;
+    if (!(await isRepository(repositoryRoot))) return null;
+    try {
+      const waiting = (await changedUnder(repositoryRoot, [...captured.paths]))
+        .length;
+      const lastCommittedDay = await lastCapturedCommitDay(repositoryRoot);
+      return {
+        waiting,
+        lastCommittedDay,
+        due: waiting > 0 && lastCommittedDay !== localDay(now),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function commitCaptured(
+    repositoryRoot: string,
+    now: Date,
+    owner?: string,
+  ): Promise<CommitOutcome> {
+    if (captured === undefined) {
+      return {
+        committed: false,
+        reason: "this domain declares no captured content",
+      };
+    }
+    const state = await capturedState(repositoryRoot, now);
+    if (state === null) {
+      return {
+        committed: false,
+        reason: "this domain is not a git repository here",
+      };
+    }
+    if (state.waiting === 0) {
+      return { committed: false, reason: "nothing to commit" };
+    }
+    return commitPaths(
+      repositoryRoot,
+      [...captured.paths],
+      captured.message(state.waiting, localDay(now)),
+      owner,
+    );
+  }
+
+  async function commitCapturedIfDue(
+    repositoryRoot: string,
+    now: Date,
+    owner?: string,
+  ): Promise<DailyOutcome> {
+    if (captured === undefined) {
+      return {
+        committed: false,
+        reason: "this domain declares no captured content",
+      };
+    }
+    const state = await capturedState(repositoryRoot, now);
+    if (state === null) {
+      return {
+        committed: false,
+        reason: "this domain is not a git repository here",
+      };
+    }
+    if (!state.due) return { committed: "later" };
+    return commitCaptured(repositoryRoot, now, owner);
   }
 
   async function hasRemote(repositoryRoot: string): Promise<boolean | null> {
@@ -337,6 +510,9 @@ export function createDomainGit(options: DomainGitOptions): DomainGit {
     commitPaths,
     commitDomainOwned,
     uncommitted,
+    capturedState,
+    commitCaptured,
+    commitCapturedIfDue,
     hasRemote,
     changes,
     listChanges,

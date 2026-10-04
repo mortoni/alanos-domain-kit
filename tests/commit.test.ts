@@ -3,7 +3,13 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createDomainGit, parseStatus } from "../src/git/commit.js";
+import {
+  capturedOverdue,
+  createDomainGit,
+  dayBefore,
+  localDay,
+  parseStatus,
+} from "../src/git/commit.js";
 
 const OWNED = ["evidence", "knowledge", "audit", "insights"] as const;
 
@@ -122,5 +128,85 @@ describe("parseStatus", () => {
       { path: "touched.md", status: "modified" },
       { path: "fresh.md", status: "untracked" },
     ]);
+  });
+});
+
+describe("the captured daily rhythm (EV-14's second branch)", () => {
+  const capturedGit = createDomainGit({
+    domainId: "example",
+    ownedPaths: OWNED,
+    defaultOwner: "The Owner",
+    captured: {
+      paths: ["evidence/sessions", "audit/actions.jsonl"],
+      anchorPaths: ["evidence/sessions"],
+      message: (count, day) =>
+        `example: captured through ${day}\n\n${count} captured file(s) (constitution EV-14).`,
+    },
+  });
+
+  it("is absent as an answer when the domain declares no captured content", async () => {
+    const root = await scratchRepo();
+    expect(await domainGit.capturedState(root, new Date())).toBeNull();
+    const outcome = await domainGit.commitCaptured(root, new Date());
+    expect(outcome.committed).toBe(false);
+  });
+
+  it("commits once per day, excludes captured from uncommitted, then waits", async () => {
+    const root = await scratchRepo();
+    const now = new Date();
+    await mkdir(join(root, "evidence", "sessions"), { recursive: true });
+    await mkdir(join(root, "audit"), { recursive: true });
+    await writeFile(
+      join(root, "evidence", "sessions", "s1.md"),
+      "captured\n",
+      "utf8",
+    );
+    await writeFile(join(root, "audit", "actions.jsonl"), "{}\n", "utf8");
+
+    // Captured content never counts as plainly uncommitted.
+    expect(await capturedGit.uncommitted(root)).toBe(0);
+
+    const before = await capturedGit.capturedState(root, now);
+    expect(before).toMatchObject({ waiting: 2, due: true });
+
+    const first = await capturedGit.commitCapturedIfDue(root, now);
+    expect(first.committed).toBe(true);
+
+    await writeFile(
+      join(root, "evidence", "sessions", "s2.md"),
+      "captured later\n",
+      "utf8",
+    );
+    const second = await capturedGit.commitCapturedIfDue(root, now);
+    expect(second).toEqual({ committed: "later" });
+
+    const state = await capturedGit.capturedState(root, now);
+    expect(state?.due).toBe(false);
+    expect(state?.waiting).toBe(1);
+  });
+
+  it("knows when the rhythm is overdue", () => {
+    const now = new Date(2026, 9, 4);
+    expect(
+      capturedOverdue(
+        { waiting: 1, lastCommittedDay: "2026-10-01", due: true },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      capturedOverdue(
+        { waiting: 1, lastCommittedDay: "2026-10-03", due: true },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      capturedOverdue({ waiting: 0, lastCommittedDay: null, due: false }, now),
+    ).toBe(false);
+  });
+
+  it("localDay and dayBefore speak the owner's calendar", () => {
+    expect(localDay(new Date(2026, 0, 1))).toBe("2026-01-01");
+    expect(dayBefore("2026-01-01")).toBe("2025-12-31");
+    expect(dayBefore("2026-03-01")).toBe("2026-02-28");
   });
 });
