@@ -41,7 +41,7 @@
   "peerDependencies": {
     "@modelcontextprotocol/sdk": ">=1.30.0 <2",
     "prettier": "^3",
-    "vitest": "^3",
+    "vitest": "^3 || ^4 || ^5",
     "zod": "^3"
   },
   "peerDependenciesMeta": {
@@ -58,7 +58,7 @@
     "markdownlint-cli2": "^0.18.1",
     "prettier": "^3.9.9",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7",
+    "vitest": "^5.0.3",
     "zod": "^3.25.76"
   }
 }
