@@ -12,6 +12,7 @@ Shared wire and plumbing for Alan OS domain repositories. A domain is a standalo
 - `appendAuditRecord` / `readAuditLog`: the append-only action log with request-id replay.
 - `@alanos/domain-kit/testing`: `sandboxConformance`, the executor sandbox test suite. Call it from one test file; the deny lists stay in the domain's own `.claude/settings.json`.
 - `tsconfig.base.json`: the shared compiler options, via `"extends": "@alanos/domain-kit/tsconfig.base.json"`.
+- `createDomain` and the `alanos-create-domain` command: a new domain repository from its approved charter, from the template in `templates/domain`. It is callable from its first commit (the status read, the improvement reads, `transition_insight`, `commit_pending`) and holds no evidence or knowledge. It writes only into a folder that does not exist yet and never runs git, a package manager or the network: the caller installs, formats, emits the manifest and commits.
 
 ## How a domain consumes it
 

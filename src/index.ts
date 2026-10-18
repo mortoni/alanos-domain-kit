@@ -8,3 +8,4 @@ export * from "./improvement/standard.js";
 export * from "./improvement/reads.js";
 export * from "./improvement/transition.js";
 export * from "./manifest/emit.js";
+export * from "./create/create-domain.js";

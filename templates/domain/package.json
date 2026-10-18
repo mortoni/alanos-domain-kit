@@ -1,0 +1,35 @@
+{
+  "name": "__PACKAGE__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.25.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "format": "prettier --write . '!evidence/**' '!knowledge/**' '!audit/**'",
+    "format:check": "prettier --check . '!evidence/**' '!knowledge/**' '!audit/**'",
+    "lint:markdown": "markdownlint-cli2 --no-globs '**/*.md' '#node_modules' '#evidence' '#knowledge' '#audit'",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "emit:manifest": "node --import tsx scripts/emit-manifest.ts",
+    "commit": "tsx scripts/commit.ts",
+    "mcp:serve": "tsx src/mcp/index.ts",
+    "check": "pnpm format:check && pnpm lint:markdown && pnpm typecheck && pnpm build && pnpm test && pnpm emit:manifest --check"
+  },
+  "dependencies": {
+    "@alanos/domain-kit": "__KIT__",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "markdownlint-cli2": "^0.18.1",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.3"
+  }
+}

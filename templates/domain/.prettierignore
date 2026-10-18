@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+
+# Evidence is never rewritten (Alan OS EV-4), and a formatter must never touch it.
+evidence
+knowledge
+audit

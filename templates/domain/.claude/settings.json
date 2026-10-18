@@ -1,0 +1,31 @@
+{
+  "$comment": "What an executor may never read here, whoever dispatches it (constitution VIS-10, VIS-S4, VIS-S5). The sandbox is the boundary: the operating system refuses every shell command a read of these folders and of .env. permissions.deny is the second layer, for the agent's own file tools. tests/executor-sandbox.test.ts fails if the two disagree.",
+  "permissions": {
+    "deny": [
+      "Read(evidence/**)",
+      "Read(knowledge/**)",
+      "Read(audit/**)",
+      "Read(.env)",
+      "Read(.env.*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": false,
+    "filesystem": {
+      "denyRead": ["./evidence", "./knowledge", "./audit"],
+      "allowWrite": ["~/Library/pnpm/store", "~/Library/Caches/pnpm"]
+    },
+    "credentials": {
+      "files": [
+        { "path": "./.env", "mode": "deny" },
+        { "path": "./.env.*", "mode": "deny" }
+      ]
+    },
+    "network": {
+      "allowedDomains": ["registry.npmjs.org", "npm.jsr.io"]
+    }
+  }
+}
