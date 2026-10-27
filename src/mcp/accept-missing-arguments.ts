@@ -1,8 +1,8 @@
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type {
+  Transport,
   JSONRPCMessage,
   MessageExtraInfo,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
 
 /**
  * Make a tool whose inputs are all optional callable with no arguments at all.
@@ -18,6 +18,11 @@ import type {
  * parameters, which is a worse trade. So the absent field is filled in at the
  * wire, where the discrepancy actually is, and the tool keeps its published
  * schema.
+ *
+ * SDK v2 (kit 0.4.0) accepts the missing field itself; tests/stdio-eras.test.ts
+ * and tests/server.test.ts prove the call works either way. The wrapper stays
+ * as a cheap guard so a regression in a later SDK cannot make a domain look
+ * down.
  */
 const withEmptyArguments = (message: JSONRPCMessage): JSONRPCMessage => {
   if (!("method" in message) || message.method !== "tools/call") return message;

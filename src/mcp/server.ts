@@ -1,6 +1,11 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import type { CallToolResult, Transport } from "@modelcontextprotocol/server";
+import {
+  StdioServerTransport,
+  serveStdio,
+} from "@modelcontextprotocol/server/stdio";
+import type { StdioServerHandle } from "@modelcontextprotocol/server/stdio";
+import { z } from "zod";
 import { acceptMissingArguments } from "./accept-missing-arguments.js";
 import type { McpToolDefinition } from "./tool.js";
 
@@ -95,7 +100,10 @@ export function createMcpServer<TContext>(
     } else {
       server.registerTool(
         tool.name,
-        { description: tool.description, inputSchema: tool.inputShape },
+        {
+          description: tool.description,
+          inputSchema: z.object(tool.inputShape),
+        },
         async (input: unknown): Promise<CallToolResult> => run(input),
       );
     }
@@ -105,7 +113,29 @@ export function createMcpServer<TContext>(
 }
 
 /**
+ * Serve a domain over stdio, the way every domain's MCP entrypoint should.
+ *
+ * Both protocol eras are served from the same factory: a 2025-era client
+ * (an `initialize` opening, which is what today's runtime and Claude Code
+ * send) is pinned to a legacy instance, and a 2026-07-28 client gets the
+ * modern path. The transport carries the same missing-`arguments` tolerance
+ * as {@link connectMcpServer}.
+ */
+export const serveMcpStdio = (
+  factory: () => McpServer,
+  options: { readonly onerror?: (error: Error) => void } = {},
+): StdioServerHandle =>
+  serveStdio(factory, {
+    transport: acceptMissingArguments(new StdioServerTransport()),
+    ...(options.onerror === undefined ? {} : { onerror: options.onerror }),
+  });
+
+/**
  * Connect the server to a transport.
+ *
+ * This serves 2025-era clients only. A stdio entrypoint uses
+ * {@link serveMcpStdio}; this remains for tests over an in-memory pair and
+ * for any custom transport.
  *
  * Always through this, never `server.connect` directly, so every surface gets
  * the same tolerance for a client that omits `arguments` on a call whose

@@ -1,6 +1,6 @@
 {
   "name": "@alanos/domain-kit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Shared wire and plumbing for Alan OS domain repositories: MCP server bootstrap, manifest emitter engine, EV-14 commit engine, improvement-standard reads, status shape, and the sandbox conformance suite.",
   "license": "MIT",
   "type": "module",
@@ -43,10 +43,10 @@
     "check": "pnpm format:check && pnpm lint:markdown && pnpm check:hygiene && pnpm typecheck && pnpm build && pnpm test"
   },
   "peerDependencies": {
-    "@modelcontextprotocol/sdk": ">=1.30.0 <2",
+    "@modelcontextprotocol/server": "^2.4.0",
     "prettier": "^3",
     "vitest": "^3 || ^4 || ^5",
-    "zod": "^3"
+    "zod": "^4.2.0"
   },
   "peerDependenciesMeta": {
     "prettier": {
@@ -57,12 +57,13 @@
     }
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@modelcontextprotocol/server": "^2.4.0",
     "@types/node": "^24.19.1",
     "markdownlint-cli2": "^0.18.1",
     "prettier": "^3.9.9",
     "typescript": "^5.9.3",
     "vitest": "^5.0.3",
-    "zod": "^3.25.76"
+    "zod": "^4.2.0"
   }
 }
