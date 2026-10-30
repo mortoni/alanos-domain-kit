@@ -1,0 +1,55 @@
+# The federation's one CI check, called by every repository (agent-readiness
+# review, step 10, 2026-10-30). A caller is a few lines:
+#
+#   jobs:
+#     check:
+#       uses: <owner>/alanos-domain-kit/.github/workflows/check.yml@v0.6.0
+#       with:
+#         timezone: <the zone the owner's machine runs in>
+#
+# It runs the repository's own `pnpm check` on the main line after a push,
+# the same command the runtime runs before a work thread merges and the
+# nightly federation check runs on the owner's machine. It is the backup to
+# those two: pushes come in batches, so this sees a break late. A change to
+# how CI runs is made here once, in a kit release, not in every repository.
+name: check
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: What to run after installing.
+        type: string
+        default: pnpm check
+      node-version:
+        type: string
+        default: "22"
+      timezone:
+        description: The zone the checks run in, so dates read as on the owner's machine.
+        type: string
+        default: UTC
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      TZ: ${{ inputs.timezone }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # No version pin: honours `packageManager` in package.json.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run the repository's check
+        run: ${{ inputs.command }}
