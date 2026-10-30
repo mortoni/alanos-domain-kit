@@ -50,19 +50,28 @@ class ArgumentTolerantTransport implements Transport {
    * interface under `exactOptionalPropertyTypes`, and inventing a nullable one
    * to satisfy a case that cannot arise there would be dishonest about what
    * the transport is.
+   *
+   * A transport other than stdio (Career's HTTP surface) is free to assign
+   * one after start, so it is re-read as messages arrive rather than only at
+   * start. Taken into the kit from Career in 0.5.0.
    */
   sessionId?: string;
 
+  private syncSessionId(): void {
+    if (this.inner.sessionId !== undefined) {
+      this.sessionId = this.inner.sessionId;
+    }
+  }
+
   async start(): Promise<void> {
     this.inner.onmessage = (message, extra): void => {
+      this.syncSessionId();
       this.onmessage?.(withEmptyArguments(message), extra);
     };
     this.inner.onclose = (): void => this.onclose?.();
     this.inner.onerror = (error): void => this.onerror?.(error);
     await this.inner.start();
-    if (this.inner.sessionId !== undefined) {
-      this.sessionId = this.inner.sessionId;
-    }
+    this.syncSessionId();
   }
 
   send(

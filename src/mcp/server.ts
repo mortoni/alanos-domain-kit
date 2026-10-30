@@ -32,6 +32,23 @@ export interface CreateMcpServerOptions<TContext> {
 }
 
 /**
+ * A result past this many characters is not repeated as text. MCP clients cap
+ * one stdio message (the SDK's default is 10 MB), and every result is sent
+ * twice, as text and as structuredContent. An original shown beside its
+ * transcription is mostly base64, and in Health a 4 MB guideline doubled went
+ * past the cap and closed the connection (2026-10-11). Callers read
+ * structuredContent. Taken into the kit from Health in 0.5.0.
+ */
+export const MAX_TEXT_COPY = 1_000_000;
+
+/** The text copy of a result: the JSON, or a line saying it is in structuredContent. */
+export function textOf(result: unknown): string {
+  const text = JSON.stringify(result, null, 2);
+  if (text.length <= MAX_TEXT_COPY) return text;
+  return `The result is ${text.length} characters, too large to repeat as text. It is in structuredContent.`;
+}
+
+/**
  * The MCP interface over the same services the domain's CLI uses. This layer
  * owns wire concerns only: no reads, no filtering, no policy.
  */
@@ -58,7 +75,7 @@ export function createMcpServer<TContext>(
       try {
         const result = await tool.handler(context, input);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: textOf(result) }],
           structuredContent: result as Record<string, unknown>,
           /**
            * A structured rejection is a real answer, not a broken call, so it

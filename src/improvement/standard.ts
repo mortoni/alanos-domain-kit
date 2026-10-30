@@ -19,6 +19,18 @@ export const INSIGHT_STATUSES = [
 
 export type InsightStatus = (typeof INSIGHT_STATUSES)[number];
 
+/** The five dimensions an insight is scored on, in the order the score weighs them. */
+export const INSIGHT_DIMENSIONS = [
+  "impact",
+  "relevance",
+  "ease",
+  "maturity",
+  "fit",
+] as const;
+
+/** The federation's default bar for `list_insights`; a domain declares its own. */
+export const DEFAULT_INSIGHTS_THRESHOLD = 7;
+
 const DimensionScoreSchema = z.object({
   score: z.number().min(0).max(10),
   reason: z.string(),
@@ -33,6 +45,8 @@ export const InsightSchema = z
   .object({
     id: z.string().min(1),
     title: z.string().min(1),
+    /** What the run judged it the same idea as. The runtime always writes it; optional so a hand-built ledger still reads. */
+    subject: z.string().optional(),
     status: z.enum(INSIGHT_STATUSES),
     score: z.number().min(0).max(10),
     dimensions: z.object({
@@ -52,6 +66,10 @@ export const InsightSchema = z
     missedRuns: z.number().int().nonnegative().default(0),
     report: z.string(),
     cite_as: z.string().min(1),
+    /** The decision entry an accepted insight cites back to. */
+    decision: z.string().optional(),
+    /** The commit that implemented it. */
+    commit: z.string().optional(),
   })
   .passthrough();
 
@@ -84,6 +102,8 @@ export const UpdatesFileSchema = z
           status: z.enum(["open", "accepted", "gone"]),
           firstSeen: z.string(),
           lastSeen: z.string(),
+          advisory: z.string().optional(),
+          changelog: z.string().optional(),
         })
         .passthrough(),
     ),
@@ -102,6 +122,16 @@ export interface PendingItem {
   readonly since: string | null;
   readonly cite_as?: string;
   readonly resolveVia: string;
+  /**
+   * Present when the item is evidence waiting for the owner's attestation: the
+   * id a caller passes to get_evidence and attest_evidence (constitution IMP-S4).
+   */
+  readonly evidenceId?: string;
+  /**
+   * Present when the item is a document sent for filing (constitution EV-13,
+   * IMP-S4 at 1.14): the id file_document returned.
+   */
+  readonly filingId?: string;
 }
 
 export interface ListInsightsOptions {
