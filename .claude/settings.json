@@ -7,13 +7,19 @@
     "enabled": true,
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": false,
-    "excludedCommands": [],
-    "filesystem": { "denyRead": [], "allowRead": [] },
+    "autoAllowBashIfSandboxed": false,
+    "filesystem": {
+      "denyRead": [],
+      "allowWrite": ["~/Library/pnpm/store", "~/Library/Caches/pnpm"]
+    },
     "credentials": {
       "files": [
         { "path": "./.env", "mode": "deny" },
         { "path": "./.env.*", "mode": "deny" }
       ]
+    },
+    "network": {
+      "allowedDomains": ["registry.npmjs.org", "npm.jsr.io"]
     }
   }
 }
