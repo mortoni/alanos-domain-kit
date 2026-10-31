@@ -18,8 +18,9 @@ a skill overrides it.
 
 ## You may not read
 
-`evidence/`, `knowledge/` and `audit/` are refused by `.claude/settings.json`. Do not work
-around the refusal. Tests build their own data. If a task seems to need the real records,
+Every private folder on the constitution's VIS-S4 list (`evidence/`, `knowledge/`,
+`audit/`, `review-queue/`, `data/` and the rest) is refused by `.claude/settings.json`.
+Do not work around the refusal. Tests build their own data. If a task seems to need the real records,
 stop and ask the owner.
 
 ## Before you finish

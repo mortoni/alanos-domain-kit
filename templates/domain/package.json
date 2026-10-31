@@ -8,9 +8,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "format": "prettier --write . '!evidence/**' '!knowledge/**' '!audit/**'",
-    "format:check": "prettier --check . '!evidence/**' '!knowledge/**' '!audit/**'",
-    "lint:markdown": "markdownlint-cli2 --no-globs '**/*.md' '#node_modules' '#evidence' '#knowledge' '#audit'",
+    "format": "prettier --write . '!evidence/**' '!raw-evidence/**' '!sessions/**' '!reports/**' '!review-queue/**' '!audit/**' '!profiles/**' '!data/**' '!logs/**' '!knowledge/**'",
+    "format:check": "prettier --check . '!evidence/**' '!raw-evidence/**' '!sessions/**' '!reports/**' '!review-queue/**' '!audit/**' '!profiles/**' '!data/**' '!logs/**' '!knowledge/**'",
+    "lint:markdown": "markdownlint-cli2 --no-globs '**/*.md' '#node_modules' '#evidence' '#raw-evidence' '#sessions' '#reports' '#review-queue' '#audit' '#profiles' '#data' '#logs' '#knowledge'",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",

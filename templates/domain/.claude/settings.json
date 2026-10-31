@@ -3,8 +3,15 @@
   "permissions": {
     "deny": [
       "Read(evidence/**)",
-      "Read(knowledge/**)",
+      "Read(raw-evidence/**)",
+      "Read(sessions/**)",
+      "Read(reports/**)",
+      "Read(review-queue/**)",
       "Read(audit/**)",
+      "Read(profiles/**)",
+      "Read(data/**)",
+      "Read(logs/**)",
+      "Read(knowledge/**)",
       "Read(.env)",
       "Read(.env.*)"
     ]
@@ -15,7 +22,18 @@
     "allowUnsandboxedCommands": false,
     "autoAllowBashIfSandboxed": false,
     "filesystem": {
-      "denyRead": ["./evidence", "./knowledge", "./audit"],
+      "denyRead": [
+        "./evidence",
+        "./raw-evidence",
+        "./sessions",
+        "./reports",
+        "./review-queue",
+        "./audit",
+        "./profiles",
+        "./data",
+        "./logs",
+        "./knowledge"
+      ],
       "allowWrite": ["~/Library/pnpm/store", "~/Library/Caches/pnpm"]
     },
     "credentials": {

@@ -8,8 +8,9 @@ import { describe, expect, it } from "vitest";
  * The private folders are refused twice: by `permissions.deny`, which only
  * binds the agent's own file tools, and by `sandbox`, which the operating
  * system enforces for every shell command. The sandbox is the boundary.
- * These tests fail if a folder is refused by one and not the other, or if
- * `pnpm check` would need to open one. The deny lists are the domain's own,
+ * These tests fail if a folder is refused by one and not the other, if a
+ * private folder exists here and neither refuses it, or if `pnpm check`
+ * would need to open one. The deny lists are the domain's own,
  * in its `.claude/settings.json`; this suite only holds them to the
  * standard. Call it from one test file:
  *
@@ -26,6 +27,23 @@ interface Settings {
     credentials?: { files?: { path: string; mode: string }[] };
   };
 }
+
+/**
+ * The private list of constitution VIS-S4, which is its single written copy.
+ * The kit's own tests fail if this drifts from it.
+ */
+export const PRIVATE_FOLDERS = [
+  "evidence",
+  "raw-evidence",
+  "sessions",
+  "reports",
+  "review-queue",
+  "audit",
+  "profiles",
+  "data",
+  "logs",
+  "knowledge",
+] as const;
 
 export function sandboxConformance(repositoryRoot: string | URL): void {
   const base =
@@ -74,6 +92,13 @@ export function sandboxConformance(repositoryRoot: string | URL): void {
         expect(denyRead, folder).toContain(`./${folder}`);
       }
       expect(denyRead.length).toBe(deniedFolders.length);
+    });
+
+    it("refuses every private folder that exists here (VIS-S4)", () => {
+      const open = PRIVATE_FOLDERS.filter(
+        (folder) => exists(folder) && !deniedFolders.includes(folder),
+      );
+      expect(open).toEqual([]);
     });
 
     it("refuses at the operating system every file the tool rules refuse", () => {
