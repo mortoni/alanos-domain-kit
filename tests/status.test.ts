@@ -27,6 +27,15 @@ describe("composeStatus", () => {
       "2 entries are invalid; 1 file is not committed",
     );
   });
+
+  // STA-S2: a domain answers ok or degraded; down is only ever derived by callers.
+  it("is ok or degraded, never down (STA-S2)", () => {
+    for (const problems of [[], ["the index is stale"]]) {
+      expect(["ok", "degraded"]).toContain(
+        composeStatus({ ...base, problems }).status,
+      );
+    }
+  });
 });
 
 describe("countNoun", () => {
